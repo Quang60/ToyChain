@@ -1,0 +1,35 @@
+.branch-compass {
+  --compass-gold: #edd398;
+  --compass-ink: #aec5af;
+  --compass-background: #194d3d;
+  width: 220px;
+  max-width: 100%;
+  margin: 20px auto 24px;
+  color: var(--compass-gold);
+}
+
+.branch-compass svg { display: block; width: 100%; height: auto; overflow: visible; }
+.branch-compass figcaption { margin-top: 6px; text-align: center; font-size: 10px; font-weight: 500; letter-spacing: 1.4px; text-transform: uppercase; }
+.compass-ring { fill: none; stroke: var(--compass-ink); stroke-opacity: .24; }
+.compass-inner-ring { stroke-dasharray: 2 6; stroke-opacity: .17; }
+.compass-tick { fill: none; stroke: var(--compass-ink); stroke-opacity: .6; }
+.compass-direction { fill: var(--compass-ink); font-size: 9px; font-weight: 500; letter-spacing: 1.3px; }
+.compass-direction.is-active { fill: var(--compass-gold); font-weight: 800; }
+.compass-needle-tip { fill: var(--compass-gold); }
+.compass-needle-tail { fill: var(--compass-ink); fill-opacity: .45; }
+.compass-pivot { fill: var(--compass-background); stroke: var(--compass-gold); stroke-width: 2; }
+.compass-center { stroke: var(--compass-gold); stroke-width: 1.5; fill: none; }
+.compass-center-ring { fill: var(--compass-gold); fill-opacity: .08; }
+.compass-center-dot { fill: var(--compass-gold); stroke: none; }
+.login-mobile-compass { display: none; }
+
+@media (max-width: 960px) {
+  .login-mobile-compass { display: block; }
+  .login-mobile-compass .branch-compass {
+    --compass-gold: #84652b;
+    --compass-ink: #5e7864;
+    --compass-background: #f6f7f3;
+    width: 156px;
+    margin: 0 auto 24px;
+  }
+}

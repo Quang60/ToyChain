@@ -1,0 +1,221 @@
+name: toychain
+x-app: &app
+  image: toychain-app:local
+  build: .
+  restart: unless-stopped
+  environment: &environment
+    JWT_SECRET: ${JWT_SECRET:?Run setup first}
+    INTERNAL_SECRET: ${INTERNAL_SECRET:?Run setup first}
+    DEMO_PASSWORD: ${DEMO_PASSWORD:?Run setup first}
+    MONGO_URL: mongodb://toychain:${MONGO_PASSWORD}@mongo:27017/?authSource=admin
+    RABBIT_URL: amqp://toychain:${RABBIT_PASSWORD}@rabbit:5672/
+    S3_ENDPOINT: http://storage:8333
+    S3_ACCESS_KEY: ${S3_ACCESS_KEY}
+    S3_SECRET_KEY: ${S3_SECRET_KEY}
+  healthcheck:
+    test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health',timeout=3)"]
+    interval: 10s
+    timeout: 5s
+    retries: 12
+    start_period: 40s
+services:
+  rabbit:
+    image: rabbitmq:4.1-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: toychain
+      RABBITMQ_DEFAULT_PASS: ${RABBIT_PASSWORD}
+    volumes: [rabbit-data:/var/lib/rabbitmq]
+    ports: ["127.0.0.1:15672:15672"]
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+  mongo:
+    image: mongo:8.0
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: toychain
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD}
+    volumes: [mongo-data:/data/db]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+  storage:
+    image: chrislusf/seaweedfs:4.52
+    restart: unless-stopped
+    command: ["mini", "-dir=/data"]
+    environment:
+      AWS_ACCESS_KEY_ID: ${S3_ACCESS_KEY}
+      AWS_SECRET_ACCESS_KEY: ${S3_SECRET_KEY}
+      S3_BUCKET: toychain-documents
+    volumes: [storage-data:/data]
+  db-central:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=40"]
+    environment:
+      POSTGRES_DB: toychain
+      POSTGRES_USER: toychain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [db-central-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toychain -d toychain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api-central:
+    <<: *app
+    environment: &env-central
+      <<: *environment
+      NODE_ID: CENTRAL
+      DATABASE_URL: postgresql+psycopg://toychain:${POSTGRES_PASSWORD}@db-central:5432/toychain
+    ports: ["127.0.0.1:8080:8000"]
+    depends_on:
+      db-central: {condition: service_healthy}
+  worker-central:
+    <<: *app
+    environment: *env-central
+    command: ["python", "-m", "app.worker"]
+    healthcheck: {disable: true}
+    depends_on:
+      api-central: {condition: service_healthy}
+      rabbit: {condition: service_healthy}
+      mongo: {condition: service_healthy}
+      storage: {condition: service_started}
+  db-dong:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=40"]
+    environment:
+      POSTGRES_DB: toychain
+      POSTGRES_USER: toychain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [db-dong-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toychain -d toychain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api-dong:
+    <<: *app
+    environment: &env-dong
+      <<: *environment
+      NODE_ID: DONG
+      DATABASE_URL: postgresql+psycopg://toychain:${POSTGRES_PASSWORD}@db-dong:5432/toychain
+    ports: ["127.0.0.1:8101:8000"]
+    depends_on:
+      db-dong: {condition: service_healthy}
+  worker-dong:
+    <<: *app
+    environment: *env-dong
+    command: ["python", "-m", "app.worker"]
+    healthcheck: {disable: true}
+    depends_on:
+      api-dong: {condition: service_healthy}
+      rabbit: {condition: service_healthy}
+  db-tay:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=40"]
+    environment:
+      POSTGRES_DB: toychain
+      POSTGRES_USER: toychain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [db-tay-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toychain -d toychain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api-tay:
+    <<: *app
+    environment: &env-tay
+      <<: *environment
+      NODE_ID: TAY
+      DATABASE_URL: postgresql+psycopg://toychain:${POSTGRES_PASSWORD}@db-tay:5432/toychain
+    ports: ["127.0.0.1:8102:8000"]
+    depends_on:
+      db-tay: {condition: service_healthy}
+  worker-tay:
+    <<: *app
+    environment: *env-tay
+    command: ["python", "-m", "app.worker"]
+    healthcheck: {disable: true}
+    depends_on:
+      api-tay: {condition: service_healthy}
+      rabbit: {condition: service_healthy}
+  db-nam:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=40"]
+    environment:
+      POSTGRES_DB: toychain
+      POSTGRES_USER: toychain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [db-nam-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toychain -d toychain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api-nam:
+    <<: *app
+    environment: &env-nam
+      <<: *environment
+      NODE_ID: NAM
+      DATABASE_URL: postgresql+psycopg://toychain:${POSTGRES_PASSWORD}@db-nam:5432/toychain
+    ports: ["127.0.0.1:8103:8000"]
+    depends_on:
+      db-nam: {condition: service_healthy}
+  worker-nam:
+    <<: *app
+    environment: *env-nam
+    command: ["python", "-m", "app.worker"]
+    healthcheck: {disable: true}
+    depends_on:
+      api-nam: {condition: service_healthy}
+      rabbit: {condition: service_healthy}
+  db-bac:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    command: ["postgres", "-c", "shared_buffers=32MB", "-c", "max_connections=40"]
+    environment:
+      POSTGRES_DB: toychain
+      POSTGRES_USER: toychain
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes: [db-bac-data:/var/lib/postgresql/data]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U toychain -d toychain"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+  api-bac:
+    <<: *app
+    environment: &env-bac
+      <<: *environment
+      NODE_ID: BAC
+      DATABASE_URL: postgresql+psycopg://toychain:${POSTGRES_PASSWORD}@db-bac:5432/toychain
+    ports: ["127.0.0.1:8104:8000"]
+    depends_on:
+      db-bac: {condition: service_healthy}
+  worker-bac:
+    <<: *app
+    environment: *env-bac
+    command: ["python", "-m", "app.worker"]
+    healthcheck: {disable: true}
+    depends_on:
+      api-bac: {condition: service_healthy}
+      rabbit: {condition: service_healthy}
+volumes:
+  rabbit-data:
+  mongo-data:
+  storage-data:
+  db-central-data:
+  db-dong-data:
+  db-tay-data:
+  db-nam-data:
+  db-bac-data:
