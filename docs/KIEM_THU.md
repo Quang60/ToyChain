@@ -16,6 +16,13 @@ Kiểm thử backend bao gồm xác thực/phạm vi chi nhánh, quyền thu ng�
 
 Kiểm thử preview kiểm tra số liệu bốn chi nhánh, tồn/doanh thu nhất quán với giao dịch mẫu, tìm kiếm hợp nhất, tải tài liệu đúng phạm vi và từ chối lưu thay đổi. Preview không dùng dịch vụ dữ liệu thật.
 
+## Cập nhật sidebar desktop — 07/11/2026
+
+- Sửa lỗi menu trung tâm dài đẩy thông tin người đăng nhập và nút đăng xuất xuống ngoài màn hình. Giữ kích thước phần đầu/cuối sidebar; cho danh sách menu co lại và cuộn riêng, không ép nhỏ các nút menu.
+- Chỉ bổ sung CSS cho sidebar ở chiều rộng trên 960px; không đổi component, dữ liệu, nghiệp vụ hoặc các quy tắc mobile hiện có.
+- Chạy lại `python scripts/manage.py check`: **41 test backend passed** trong 20,06 giây, **4 test preview passed**, TypeScript/Vite build thành công. Vẫn có cảnh báo Starlette/AnyIO đã nêu bên dưới.
+- Chưa xác minh trực quan bản sửa vì browser host/native pipe không kết nối được. Cần kiểm tra trung tâm và bốn chi nhánh ở cửa sổ thấp/zoom 125%: phần tài khoản hiển thị đủ, menu cuối truy cập được bằng cuộn/Tab, cuộn nội dung chính không đẩy phần tài khoản khỏi màn hình.
+
 ## Các điểm đã sửa sau rà soát
 
 | Vấn đề | Thay đổi | Bằng chứng / giới hạn |
